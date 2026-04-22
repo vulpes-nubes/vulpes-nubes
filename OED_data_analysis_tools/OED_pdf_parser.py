@@ -80,4 +80,4 @@ def parse_pdfs_in_folder(folder_path, output_csv="oed_senses.csv"):
         print("No data extracted.")
 
 # Usage
-parse_pdfs_in_folder("/path/to/your/pdf/folder")
+parse_pdfs_in_folder("/media/fox/Storage/PhD-MKG/25 OED/NewOEDScrape/PDFs")

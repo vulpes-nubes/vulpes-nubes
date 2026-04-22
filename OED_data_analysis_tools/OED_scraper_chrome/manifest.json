@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "OED Scraper",
+  "version": "1.0",
+  "description": "Scrape OED pages for senses, etymology, and examples.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "icons/icon16.png"
+  },
+  "permissions": ["activeTab", "downloads"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.oed.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
