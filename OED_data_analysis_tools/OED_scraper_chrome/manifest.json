@@ -12,9 +12,14 @@
     "default_popup": "popup/popup.html",
     "default_icon": "icons/icon16.png"
   },
-  "permissions": ["activeTab", "downloads", "commands"],
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "commands"
+  ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {

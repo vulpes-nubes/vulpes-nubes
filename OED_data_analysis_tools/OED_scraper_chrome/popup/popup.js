@@ -1,27 +1,28 @@
-// Shared function to handle scraping
+console.log("Popup script loaded");
+
 function handleScrape() {
   const status = document.getElementById('status');
   status.textContent = "Scraping...";
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs.length === 0) {
+      status.textContent = "Error: No active tab";
+      return;
+    }
+
     chrome.tabs.sendMessage(tabs[0].id, { action: "scrape" }, (response) => {
       if (chrome.runtime.lastError) {
         status.textContent = "Error: " + chrome.runtime.lastError.message;
-      } else if (response) {
-        status.textContent = "Downloading CSV...";
-        const blob = new Blob([response.csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        chrome.downloads.download({
-          url: url,
-          filename: `${response.lemma}_senses.csv`
-        });
-        status.textContent = "Done!";
+        console.error("Popup error:", chrome.runtime.lastError);
       } else {
-        status.textContent = "No data returned. Check console for errors.";
+        status.textContent = "Scraping complete. Check downloads folder.";
+        console.log("Scrape message sent from popup");
       }
     });
   });
 }
 
-// Add event listener for the button
-document.getElementById('scrape').addEventListener('click', handleScrape);
+document.getElementById('scrape').addEventListener('click', () => {
+  console.log("Scrape button clicked");
+  handleScrape();
+});
