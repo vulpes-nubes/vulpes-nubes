@@ -2,9 +2,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "scrape") {
     console.log("Scraping OED page...");
 
-    // Extract verb
-    const verb = document.querySelector('h1')?.textContent.split(',')[0].trim() || "unknown";
-    console.log("Verb:", verb);
+    // Extract lemma and remove any trailing part of speech
+    const h1Text = document.querySelector('h1')?.textContent.trim() || "unknown";
+    // This regex matches the lemma by capturing everything up to "verb", "noun", "adj", etc.
+    const lemmaMatch = h1Text.match(/^(.*?)(?:verb|noun|adj|adv|int|prep|conj|pron)\.?$/i);
+    const lemma = lemmaMatch ? lemmaMatch[1].trim() : h1Text;
+    console.log("Lemma:", lemma);
 
     // Extract etymology
     let etymology = "";
@@ -55,15 +58,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     // Generate CSV
-    let csv = "verb,sense_id,definition,etymology,etymology_keywords,example_date,example_source,example_content\n";
+    let csv = "lemma,sense_id,definition,etymology,etymology_keywords,example_date,example_source,example_content\n";
     senses.forEach(sense => {
       sense.examples.forEach(example => {
-        const row = `"${verb}","${sense.senseId}","${sense.definition.replace(/"/g, '""')}","${etymology.replace(/"/g, '""')}","${etymologyKeywords.join(', ')}","${example.date}","${example.source.replace(/"/g, '""')}","${example.content.replace(/"/g, '""')}"`;
+        const row = `"${lemma}","${sense.senseId}","${sense.definition.replace(/"/g, '""')}","${etymology.replace(/"/g, '""')}","${etymologyKeywords.join(', ')}","${example.date}","${example.source.replace(/"/g, '""')}","${example.content.replace(/"/g, '""')}"`;
         csv += row + "\n";
       });
     });
 
     console.log("CSV generated:", csv);
-    sendResponse({ verb, csv });
+    sendResponse({ lemma, csv });
   }
 });
