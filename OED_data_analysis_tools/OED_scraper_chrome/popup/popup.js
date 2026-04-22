@@ -1,4 +1,5 @@
-document.getElementById('scrape').addEventListener('click', () => {
+// Shared function to handle scraping
+function handleScrape() {
   const status = document.getElementById('status');
   status.textContent = "Scraping...";
 
@@ -20,4 +21,7 @@ document.getElementById('scrape').addEventListener('click', () => {
       }
     });
   });
-});
+}
+
+// Add event listener for the button
+document.getElementById('scrape').addEventListener('click', handleScrape);
