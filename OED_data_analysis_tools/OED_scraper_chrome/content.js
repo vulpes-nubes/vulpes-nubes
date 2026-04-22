@@ -6,25 +6,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Extract lemma and thoroughly remove part of speech
     const h1Text = document.querySelector('span.headword')?.textContent.trim() || "unknown";
-
-    // Improved lemma extraction to handle all cases
-    let lemma = h1Text;
-    // Remove everything after comma (part of speech)
-    lemma = lemma.split(',')[0].trim();
-    // Remove any trailing part of speech markers (verb, noun, adj, etc.)
+    let lemma = h1Text.split(',')[0].trim();
     lemma = lemma.replace(/\s+[a-z]+$/, '').trim();
-    // Remove any trailing numbers or dots
     lemma = lemma.replace(/[\d.]+$/, '').trim();
-    // Remove any remaining non-word characters at the end
     lemma = lemma.replace(/[^a-zA-Z0-9\-']+$/, '').trim();
 
-    console.log("Extracted lemma:", lemma);
-
-    // If lemma is empty after cleaning, use a default
     if (!lemma || lemma === "") {
       lemma = "unknown_lemma";
       console.warn("Using default lemma name: unknown_lemma");
     }
+    console.log("Extracted lemma:", lemma);
 
     // Extract etymology and remove "Summary"
     let etymology = "";
@@ -68,8 +59,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Extract and clean etymology keywords
     const etymologyKeywords = [];
+
+    // First extract language origins
     if (etymology) {
-      // Use regex to find potential language/term matches
       const potentialMatches = etymology.match(/\b([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b/g) || [];
 
       for (const match of potentialMatches) {
@@ -81,17 +73,70 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
 
         if (languageMatch) {
-          etymologyKeywords.push(`etymology: ${languageMatch}`);
-          continue;
+          etymologyKeywords.push(`etymology-origin: ${languageMatch}`);
         }
+      }
+    }
 
-        // Check for valid lexicographic terms (exact match)
-        const termMatch = validLexicographicTerms.find(term =>
-          normalizedMatch.toLowerCase() === term.toLowerCase()
-        );
+    // Now extract formation information using lexicographic terms
+    if (etymology) {
+      // Look for formation patterns in the etymology text
+      const formationPatterns = [
+        { pattern: /(?:formed|derived|created|made|from|by|through|via)\s+(?:a|an|the)?\s*([a-z]+(?:-[a-z]+)?)/gi, type: "process" },
+        { pattern: /(?:by|through)\s+([a-z]+ation)/gi, type: "process" },
+        { pattern: /(?:with|plus)\s+([a-z]+(?:-[a-z]+)?)/gi, type: "component" },
+        { pattern: /(?:from|of)\s+([a-z]+(?:-[a-z]+)?)\s+(?:origin|formation|derivation)/gi, type: "source" }
+      ];
 
-        if (termMatch) {
-          etymologyKeywords.push(`lexicographic: ${termMatch}`);
+      // Check for direct matches with our lexicographic terms
+      for (const term of validLexicographicTerms) {
+        const regex = new RegExp(`\\b${term}\\b`, 'gi');
+        if (etymology.match(regex)) {
+          etymologyKeywords.push(`etymology-formation: ${term}`);
+        }
+      }
+
+      // Check for formation patterns
+      for (const patternObj of formationPatterns) {
+        const matches = etymology.match(patternObj.pattern);
+        if (matches) {
+          for (const match of matches) {
+            // Extract the actual term from the match
+            const termMatch = match.match(/([a-z]+(?:-[a-z]+)?)$/i);
+            if (termMatch && termMatch[1]) {
+              const term = termMatch[1].toLowerCase();
+
+              // Check if this term is in our lexicographic terms
+              if (validLexicographicTerms.some(t => t.toLowerCase() === term)) {
+                etymologyKeywords.push(`etymology-formation: ${termMatch[1]}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Look for common formation phrases
+      const formationPhrases = [
+        { phrase: "borrowed from", type: "borrowing" },
+        { phrase: "derived from", type: "derivative" },
+        { phrase: "formed from", type: "compound" },
+        { phrase: "blend of", type: "blend" },
+        { phrase: "back-formation from", type: "back-formation" },
+        { phrase: "shortening of", type: "clipping" },
+        { phrase: "acronym from", type: "acronym" },
+        { phrase: "initialism from", type: "initialism" },
+        { phrase: "affixation of", type: "affix" },
+        { phrase: "prefix", type: "prefix" },
+        { phrase: "suffix", type: "suffix" },
+        { phrase: "infix", type: "infix" },
+        { phrase: "reduplication of", type: "reduplication" },
+        { phrase: "imitative of", type: "imitative" },
+        { phrase: "onomatopoeic", type: "onomatopoeic" }
+      ];
+
+      for (const phraseObj of formationPhrases) {
+        if (etymology.toLowerCase().includes(phraseObj.phrase.toLowerCase())) {
+          etymologyKeywords.push(`etymology-formation: ${phraseObj.type}`);
         }
       }
     }
@@ -138,7 +183,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let csv = "lemma,sense_id,definition,etymology,etymology_keywords,example_date,example_source,example_content\n";
     senses.forEach(sense => {
       if (sense.examples.length === 0) {
-        // Add a row even if there are no examples
         const row = `"${lemma}","${sense.senseId}","${sense.definition.replace(/"/g, '""')}","${etymology.replace(/"/g, '""')}","${uniqueKeywords.join(', ')}","","",""`;
         csv += row + "\n";
       } else {

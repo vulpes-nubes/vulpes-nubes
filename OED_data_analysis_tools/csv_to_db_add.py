@@ -134,4 +134,4 @@ def import_csv_to_db(folder_path, db_path='verbs.db'):
         conn.close()
 
 # Usage
-import_csv_to_db('/path/to/your/csv/folder')
+import_csv_to_db('path to your folder containing CSV files')
